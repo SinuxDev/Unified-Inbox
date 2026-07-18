@@ -1,4 +1,4 @@
-# Future Wave Inbox — Backend
+# Unified Inbox — Backend API
 
 NestJS Phase 0 foundation: auth, organizations, teams/RBAC, connectors stub, SSE stub.
 
