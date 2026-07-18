@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fw-inbox-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inbox
+      POSTGRES_PASSWORD: inbox
+      POSTGRES_DB: futurewave_inbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - fw_inbox_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inbox -d futurewave_inbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: fw-inbox-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - fw_inbox_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  fw_inbox_pg_data:
+  fw_inbox_redis_data:
