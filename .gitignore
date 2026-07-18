@@ -1,0 +1,23 @@
+# Future Wave Inbox — Backend
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & build
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Graphify (if run from this package — keep output at Unified App root when possible)
+graphify-out/
