@@ -7,10 +7,7 @@ import { TeamsController } from './teams.controller';
 import { TeamsService } from './teams.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Team, TeamMember]),
-    OrganizationsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Team, TeamMember]), OrganizationsModule],
   controllers: [TeamsController],
   providers: [TeamsService],
   exports: [TeamsService],
