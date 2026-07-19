@@ -20,7 +20,9 @@ import { PasswordService } from './password.service';
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('jwt.secret'),
         signOptions: {
-          expiresIn: 60 * 60 * 24 * 7,
+          expiresIn: config.getOrThrow<string>(
+            'jwt.expiresIn',
+          ) as `${number}${'s' | 'm' | 'h' | 'd'}`,
         },
       }),
     }),
