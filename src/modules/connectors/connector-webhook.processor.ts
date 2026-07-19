@@ -14,9 +14,10 @@ export type ConnectorWebhookJob = {
 export class ConnectorWebhookProcessor extends WorkerHost {
   private readonly logger = new Logger(ConnectorWebhookProcessor.name);
 
-  async process(job: Job<ConnectorWebhookJob>): Promise<void> {
+  process(job: Job<ConnectorWebhookJob>): Promise<void> {
     this.logger.log(
       `Processed webhook job ${job.id} for provider=${job.data.provider}`,
     );
+    return Promise.resolve();
   }
 }
