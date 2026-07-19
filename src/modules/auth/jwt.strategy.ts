@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -9,6 +9,7 @@ type JwtPayload = {
   email: string;
   organizationId: string;
   role: string;
+  typ?: string;
 };
 
 @Injectable()
@@ -22,6 +23,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): AuthUser {
+    if (payload.typ === 'refresh') {
+      throw new UnauthorizedException('Refresh token cannot be used as access');
+    }
+    if (payload.typ !== undefined && payload.typ !== 'access') {
+      throw new UnauthorizedException('Invalid access token');
+    }
     return {
       userId: payload.sub,
       email: payload.email,
