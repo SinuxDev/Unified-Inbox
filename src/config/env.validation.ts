@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Max,
   Min,
@@ -23,6 +24,10 @@ class EnvironmentVariables {
   @Min(1)
   @Max(65535)
   PORT!: number;
+
+  @IsOptional()
+  @IsString()
+  CORS_ORIGINS?: string;
 
   @IsString()
   @IsNotEmpty()
