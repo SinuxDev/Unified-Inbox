@@ -23,7 +23,10 @@ export class User {
   @Column({ name: 'display_name', nullable: true })
   displayName!: string | null;
 
-  @OneToMany(() => OrganizationMember, (member: OrganizationMember) => member.user)
+  @OneToMany(
+    () => OrganizationMember,
+    (member: OrganizationMember) => member.user,
+  )
   memberships!: OrganizationMember[];
 
   @OneToMany(() => TeamMember, (member: TeamMember) => member.user)
