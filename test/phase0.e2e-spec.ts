@@ -5,6 +5,21 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 
+type AuthResponse = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+type OrgMeResponse = {
+  organizationId: string;
+  organizationName: string;
+  role: string;
+};
+
+type TeamResponse = {
+  name: string;
+};
+
 describe('Phase0Auth (e2e)', () => {
   let app: INestApplication<App>;
   let dataSource: DataSource;
@@ -47,22 +62,46 @@ describe('Phase0Auth (e2e)', () => {
       })
       .expect(201);
 
-    expect(register.body.accessToken).toBeDefined();
+    const registerBody = register.body as AuthResponse;
+    expect(registerBody.accessToken).toBeDefined();
+    expect(registerBody.refreshToken).toBeDefined();
 
     const me = await request(app.getHttpServer())
       .get('/organizations/me')
-      .set('Authorization', `Bearer ${register.body.accessToken}`)
+      .set('Authorization', `Bearer ${registerBody.accessToken}`)
       .expect(200);
 
-    expect(me.body.organizationName).toBe('Acme');
-    expect(me.body.role).toBe('owner');
+    const meBody = me.body as OrgMeResponse;
+    expect(meBody.organizationName).toBe('Acme');
+    expect(meBody.role).toBe('owner');
 
     const login = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'owner@example.com', password: 'password1' })
       .expect(201);
 
-    expect(login.body.accessToken).toBeDefined();
+    const loginBody = login.body as AuthResponse;
+    expect(loginBody.accessToken).toBeDefined();
+    expect(loginBody.refreshToken).toBeDefined();
+
+    const refreshed = await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: loginBody.refreshToken })
+      .expect(200);
+
+    const refreshedBody = refreshed.body as AuthResponse;
+    expect(refreshedBody.accessToken).toBeDefined();
+    expect(refreshedBody.refreshToken).toBeDefined();
+
+    await request(app.getHttpServer())
+      .get('/organizations/me')
+      .set('Authorization', `Bearer ${refreshedBody.accessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: loginBody.accessToken })
+      .expect(401);
   });
 
   it('denies cross-tenant organization access via forged org id in token path', async () => {
@@ -84,17 +123,22 @@ describe('Phase0Auth (e2e)', () => {
       })
       .expect(201);
 
+    const aBody = a.body as AuthResponse;
+    const bBody = b.body as AuthResponse;
+
     const meA = await request(app.getHttpServer())
       .get('/organizations/me')
-      .set('Authorization', `Bearer ${a.body.accessToken}`)
+      .set('Authorization', `Bearer ${aBody.accessToken}`)
       .expect(200);
 
     const meB = await request(app.getHttpServer())
       .get('/organizations/me')
-      .set('Authorization', `Bearer ${b.body.accessToken}`)
+      .set('Authorization', `Bearer ${bBody.accessToken}`)
       .expect(200);
 
-    expect(meA.body.organizationId).not.toEqual(meB.body.organizationId);
+    const meABody = meA.body as OrgMeResponse;
+    const meBBody = meB.body as OrgMeResponse;
+    expect(meABody.organizationId).not.toEqual(meBBody.organizationId);
   });
 
   it('creates a team for owners', async () => {
@@ -107,12 +151,15 @@ describe('Phase0Auth (e2e)', () => {
       })
       .expect(201);
 
+    const registerBody = register.body as AuthResponse;
+
     const team = await request(app.getHttpServer())
       .post('/teams')
-      .set('Authorization', `Bearer ${register.body.accessToken}`)
+      .set('Authorization', `Bearer ${registerBody.accessToken}`)
       .send({ name: 'Support' })
       .expect(201);
 
-    expect(team.body.name).toBe('Support');
+    const teamBody = team.body as TeamResponse;
+    expect(teamBody.name).toBe('Support');
   });
 });
