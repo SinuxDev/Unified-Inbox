@@ -20,7 +20,7 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash!: string;
 
-  @Column({ name: 'display_name', nullable: true })
+  @Column({ name: 'display_name', type: 'varchar', nullable: true })
   displayName!: string | null;
 
   @OneToMany(

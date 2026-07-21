@@ -7,6 +7,7 @@ import {
   IsString,
   Max,
   Min,
+  ValidateIf,
   validateSync,
 } from 'class-validator';
 
@@ -49,13 +50,20 @@ class EnvironmentVariables {
   @IsNotEmpty()
   DATABASE_NAME!: string;
 
+  @IsOptional()
+  @IsString()
+  REDIS_ENABLED?: string;
+
+  @ValidateIf((env: EnvironmentVariables) => env.REDIS_ENABLED === 'true')
   @IsString()
   @IsNotEmpty()
-  REDIS_HOST!: string;
+  REDIS_HOST?: string;
 
+  @ValidateIf((env: EnvironmentVariables) => env.REDIS_ENABLED === 'true')
   @IsInt()
   @Min(1)
-  REDIS_PORT!: number;
+  @Max(65535)
+  REDIS_PORT?: number;
 
   @IsString()
   @IsNotEmpty()

@@ -15,6 +15,23 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { UsersModule } from './modules/users/users.module';
 
+const redisEnabled = process.env.REDIS_ENABLED === 'true';
+
+const redisImports = redisEnabled
+  ? [
+      BullModule.forRootAsync({
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          connection: {
+            host: config.getOrThrow<string>('redis.host'),
+            port: config.getOrThrow<number>('redis.port'),
+          },
+        }),
+      }),
+      ConnectorsModule,
+    ]
+  : [];
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,24 +57,15 @@ import { UsersModule } from './modules/users/users.module';
         database: config.getOrThrow<string>('database.name'),
         entities,
         synchronize: false,
-        logging: config.get<string>('nodeEnv') === 'development',
+        logging: false,
       }),
     }),
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.getOrThrow<string>('redis.host'),
-          port: config.getOrThrow<number>('redis.port'),
-        },
-      }),
-    }),
+    ...redisImports,
     HealthModule,
     UsersModule,
     OrganizationsModule,
     AuthModule,
     TeamsModule,
-    ConnectorsModule,
     RealtimeModule,
   ],
   providers: [

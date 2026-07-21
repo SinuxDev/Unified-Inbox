@@ -16,7 +16,9 @@ cd backend
 docker compose up -d
 cp .env.example .env
 npm install
-npm run migration:run
+npm run migration:run    # apply pending migrations
+npm run migration:show   # list applied vs pending
+npm run seed             # dev login user (after migrations)
 npm run start:dev
 ```
 

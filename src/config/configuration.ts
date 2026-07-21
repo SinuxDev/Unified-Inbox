@@ -15,6 +15,7 @@ export default () => ({
     name: process.env.DATABASE_NAME,
   },
   redis: {
+    enabled: process.env.REDIS_ENABLED === 'true',
     host: process.env.REDIS_HOST,
     port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
   },

@@ -1,9 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/bootstrap';
 import { DataSource } from 'typeorm';
+import type {
+  ApiErrorResponse,
+  ApiSuccessResponse,
+} from '../src/common/http/api-response.types';
 
 type AuthResponse = {
   accessToken: string;
@@ -20,6 +25,11 @@ type TeamResponse = {
   name: string;
 };
 
+function unwrap<T>(body: ApiSuccessResponse<T>): T {
+  expect(body.success).toBe(true);
+  return body.data;
+}
+
 describe('Phase0Auth (e2e)', () => {
   let app: INestApplication<App>;
   let dataSource: DataSource;
@@ -30,13 +40,7 @@ describe('Phase0Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+    configureApp(app);
     await app.init();
     dataSource = app.get(DataSource);
   });
@@ -62,7 +66,9 @@ describe('Phase0Auth (e2e)', () => {
       })
       .expect(201);
 
-    const registerBody = register.body as AuthResponse;
+    const registerBody = unwrap(
+      register.body as ApiSuccessResponse<AuthResponse>,
+    );
     expect(registerBody.accessToken).toBeDefined();
     expect(registerBody.refreshToken).toBeDefined();
 
@@ -71,7 +77,7 @@ describe('Phase0Auth (e2e)', () => {
       .set('Authorization', `Bearer ${registerBody.accessToken}`)
       .expect(200);
 
-    const meBody = me.body as OrgMeResponse;
+    const meBody = unwrap(me.body as ApiSuccessResponse<OrgMeResponse>);
     expect(meBody.organizationName).toBe('Acme');
     expect(meBody.role).toBe('owner');
 
@@ -80,7 +86,7 @@ describe('Phase0Auth (e2e)', () => {
       .send({ email: 'owner@example.com', password: 'password1' })
       .expect(201);
 
-    const loginBody = login.body as AuthResponse;
+    const loginBody = unwrap(login.body as ApiSuccessResponse<AuthResponse>);
     expect(loginBody.accessToken).toBeDefined();
     expect(loginBody.refreshToken).toBeDefined();
 
@@ -89,7 +95,9 @@ describe('Phase0Auth (e2e)', () => {
       .send({ refreshToken: loginBody.refreshToken })
       .expect(200);
 
-    const refreshedBody = refreshed.body as AuthResponse;
+    const refreshedBody = unwrap(
+      refreshed.body as ApiSuccessResponse<AuthResponse>,
+    );
     expect(refreshedBody.accessToken).toBeDefined();
     expect(refreshedBody.refreshToken).toBeDefined();
 
@@ -98,10 +106,15 @@ describe('Phase0Auth (e2e)', () => {
       .set('Authorization', `Bearer ${refreshedBody.accessToken}`)
       .expect(200);
 
-    await request(app.getHttpServer())
+    const invalidRefresh = await request(app.getHttpServer())
       .post('/auth/refresh')
       .send({ refreshToken: loginBody.accessToken })
       .expect(401);
+
+    const invalidBody = invalidRefresh.body as ApiErrorResponse;
+    expect(invalidBody.success).toBe(false);
+    expect(invalidBody.data).toBeNull();
+    expect(typeof invalidBody.message).toBe('string');
   });
 
   it('denies cross-tenant organization access via forged org id in token path', async () => {
@@ -123,8 +136,8 @@ describe('Phase0Auth (e2e)', () => {
       })
       .expect(201);
 
-    const aBody = a.body as AuthResponse;
-    const bBody = b.body as AuthResponse;
+    const aBody = unwrap(a.body as ApiSuccessResponse<AuthResponse>);
+    const bBody = unwrap(b.body as ApiSuccessResponse<AuthResponse>);
 
     const meA = await request(app.getHttpServer())
       .get('/organizations/me')
@@ -136,8 +149,8 @@ describe('Phase0Auth (e2e)', () => {
       .set('Authorization', `Bearer ${bBody.accessToken}`)
       .expect(200);
 
-    const meABody = meA.body as OrgMeResponse;
-    const meBBody = meB.body as OrgMeResponse;
+    const meABody = unwrap(meA.body as ApiSuccessResponse<OrgMeResponse>);
+    const meBBody = unwrap(meB.body as ApiSuccessResponse<OrgMeResponse>);
     expect(meABody.organizationId).not.toEqual(meBBody.organizationId);
   });
 
@@ -151,7 +164,9 @@ describe('Phase0Auth (e2e)', () => {
       })
       .expect(201);
 
-    const registerBody = register.body as AuthResponse;
+    const registerBody = unwrap(
+      register.body as ApiSuccessResponse<AuthResponse>,
+    );
 
     const team = await request(app.getHttpServer())
       .post('/teams')
@@ -159,7 +174,7 @@ describe('Phase0Auth (e2e)', () => {
       .send({ name: 'Support' })
       .expect(201);
 
-    const teamBody = team.body as TeamResponse;
+    const teamBody = unwrap(team.body as ApiSuccessResponse<TeamResponse>);
     expect(teamBody.name).toBe('Support');
   });
 });
